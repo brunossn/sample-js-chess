@@ -1,4 +1,4 @@
-const _table = [];
+const _board = [];
 
 // Peças
 const PEAO = 1;
@@ -8,78 +8,83 @@ const BISPO = 4;
 const REI = 5;
 const RAINHA = 6;
 
-// Table
-const TABLE_WIDTH = 8;
-const TABLE_HEIGHT = 8;
+// Board
+const BOARD_WIDTH = 8;
+const BOARD_HEIGHT = 8;
 
 main();
 
 function main() {
-    createTable();
+    createBoard();
     createPieces();
     draw();
 }
 
-function createTable() {
-    for(let i = 0; i < TABLE_WIDTH; i++) {
-        _table[i] = [];
+function createBoard() {
+    for(let i = 0; i < BOARD_WIDTH; i++) {
+        _board[i] = [];
 
-        for(let j = 0; j < TABLE_HEIGHT; j++) {
-            _table[i][j] = {
+        for(let j = 0; j < BOARD_HEIGHT; j++) {
+            _board[i][j] = {
                 piece: null,
                 pieceColor: 'white',
-                tableColor: (i + j) % 2 == 0 ? 'white' : 'black',
+                squareColor: (i + j) % 2 == 0 ? 'white' : 'black',
                 canBeNextMove: false,
-                selected: false
+                selected: false,
+                row: i,
+                column: j
             };
         }
     }
 }
 
-function movePiece(fromRow, fromColumn, toRow, toColumn) {
-    const piece = _table[fromRow][fromColumn];
-    _table[fromRow][fromColumn].piece = null;
-    _table[toRow][toColumn].piece = piece;
+function movePiece (fromRow, fromColumn, toRow, toColumn) {
+    
+    const piece = _board[fromRow][fromColumn].piece;
+    _board[fromRow][fromColumn].piece = null;
+    _board[toRow][toColumn].piece = piece;
+    
     draw();
 }
 
 function createPieces() {
-    for(let i = 0; i < TABLE_WIDTH; i++) {
-        _table[6][i].piece = PEAO;
-    }
-
-    _table[7][0].piece = TORRE;
-    _table[7][1].piece = CAVALO;
-    _table[7][2].piece = BISPO;
-    _table[7][3].piece = REI;
-    _table[7][4].piece = RAINHA;
-    _table[7][5].piece = BISPO;
-    _table[7][6].piece = CAVALO;
-    _table[7][7].piece = TORRE;
+    _board[6].map(x => x.piece = PEAO);
+    _board[7][0].piece = TORRE;
+    _board[7][1].piece = CAVALO;
+    _board[7][2].piece = BISPO;
+    _board[7][3].piece = REI;
+    _board[7][4].piece = RAINHA;
+    _board[7][5].piece = BISPO;
+    _board[7][6].piece = CAVALO;
+    _board[7][7].piece = TORRE;
 }
 
 function draw() {
     let html = '<table>';
-    for(let i = 0; i < _table.length; i++) {
+
+    for(let i = 0; i < _board.length; i++) {
         html += '<tr>';
-        
-        for(let j = 0; j < _table[i].length; j++) {
-            const celula = _table[i][j];
-            const backgroundColorClass = celula.tableColor;
-            const pieceHoverClass = celula.piece == null ? '' : 'pieceHover';
-            const canBeNextMove = celula.canBeNextMove == false ? '' : 'canBeNextMove';
-            const selected = celula.selected == false ? '' : 'selected';
+
+        for(let j = 0; j < _board[i].length; j++) {
+
+            const square = _board[i][j];
+
+            const backgroundColorClass = square.squareColor;
+            const pieceHoverClass = square.piece == null ? '' : 'pieceHover';
+            const canBeNextMove = square.canBeNextMove == false ? '' : 'canBeNextMove';
+            const selected = square.selected == false ? '' : 'selected';
 
             html += `<td
                         data-row="${i}"
                         data-column="${j}"
                         class="${backgroundColorClass} ${pieceHoverClass} ${canBeNextMove} ${selected}">
-                        <img height="50" src="${getImageFromPiece(_table[i][j].piece)}" />
+                        <img height="50" src="${getImageFromPiece(square.piece)}" />
                     </td>`;
         }
-
-        html += '</tr>';
+        
+        html += '</tr>'; 
     }
+
     html += '</table>';
 
     document.querySelector('#chess').innerHTML = html;
@@ -108,51 +113,38 @@ function createListeners() {
     document.querySelectorAll("td")
         .forEach(e => e.addEventListener('click', function(e) {
             
-            const clickedCell = _table[this.dataset.row][this.dataset.column];
+            const clickedsquare = _board[this.dataset.row][this.dataset.column];
 
-            if(clickedCell.piece != null) { // se clicou em peça
-                clearSelectedCells();
-                selectCell(this.dataset.row, this.dataset.column);
+            if(clickedsquare.piece != null) { // se clicou em peça
+                clearSelectedSquares();
+                selectSquare(this.dataset.row, this.dataset.column);
                 clearNextMovesMarkers();
                 printNextMoves(this.dataset.row, this.dataset.column);
             }
-            else if(clickedCell.canBeNextMove == true) { // se clicou para mover peça
-                let previousSelectedCell = null;
-
-                for(let i = 0; i < _table.length; i++) {
-                    for(let j = 0; j < _table[i].length; j++) {
-                        if(_table[i][j].selected) {
-                            previousSelectedCell = { row: i, column: j };
-                            break;
-                        }
-                    }
-                }
-
-                if(previousSelectedCell != null) {
-                    movePiece(previousSelectedCell.row,
-                        previousSelectedCell.column,
-                        this.dataset.row,
-                        this.dataset.column);
-                }
+            else if(clickedsquare.canBeNextMove == true) { // se clicou para mover peça
                 
+                filterSquares(square => square.selected)
+                .map(square =>
+                    movePiece(square.row, square.column, this.dataset.row, this.dataset.column));
+                    
                 clearNextMovesMarkers();
-                clearSelectedCells();
+                clearSelectedSquares();
             }
 
             draw();
         }));
 }
 
-function selectCell(row, column) {
-    if(_table[row][column].piece != null) {
-        _table[row][column].selected = true;
+function selectSquare(row, column) {
+    if(_board[row][column].piece != null) {
+        _board[row][column].selected = true;
     }
 }
 
 function printNextMoves(row, column) {
-    if(_table[row][column].piece != null) {
-        getMovesFromPiece(_table[row][column].piece, row, column)
-        .forEach(x => _table[x.row][x.column].canBeNextMove = true);
+    if(_board[row][column].piece != null) {
+        getMovesFromPiece(_board[row][column].piece, row, column)
+        .forEach(x => _board[x.row][x.column].canBeNextMove = true);
     }
 
     /** Return a array with the possibles moves */
@@ -168,11 +160,11 @@ function printNextMoves(row, column) {
             [];
 
         return calculaCasas(row, column, directions)
-            .filter(piece => inTable(piece.row, piece.column))
-            .filter(piece => !hasCellPiece(piece.row, piece.column));
+            .filter(piece => inBoard(piece.row, piece.column))
+            .filter(piece => !hasSquarePiece(piece.row, piece.column));
 
         function removeCollapses(pieces) {
-            return pieces.filter(piece => !hasCellPiece(piece.row, piece.column));
+            return pieces.filter(piece => !hasSquarePiece(piece.row, piece.column));
         }
 
         function calculaCasas(row, column, directions) {
@@ -185,12 +177,12 @@ function printNextMoves(row, column) {
             let moves = [];
             directions.moves.forEach(move => { // para cada direção
                 
-                let cell = { row: Number(row) + move.y, column: Number(column) + move.x };
+                let square = { row: Number(row) + move.y, column: Number(column) + move.x };
 
-                while(inTable(cell.row, cell.column) && !hasCellPiece(cell.row, cell.column)) {
-                    moves.push({ row: cell.row, column: cell.column });
-                    cell.row += move.y;
-                    cell.column += move.x;
+                while(inBoard(square.row, square.column) && !hasSquarePiece(square.row, square.column)) {
+                    moves.push({ row: square.row, column: square.column });
+                    square.row += move.y;
+                    square.column += move.x;
                 }
             });
 
@@ -282,26 +274,36 @@ function printNextMoves(row, column) {
 
 /** Clear the "Next moves" marks */
 function clearNextMovesMarkers() {
-    for(let i = 0; i < TABLE_WIDTH; i++) {
-        for(let j = 0; j < TABLE_HEIGHT; j++) {
-            _table[i][j].canBeNextMove = false;
-        }
-    }
+    mapSquares(square => square.canBeNextMove = false);
 }
 
-/** Clear the "Selected cell" status from all cells */
-function clearSelectedCells() {
-    for(let i = 0; i < TABLE_WIDTH; i++) {
-        for(let j = 0; j < TABLE_HEIGHT; j++) {
-            _table[i][j].selected = false;
-        }
-    }
+/** Clear the "Selected square" status from all squares */
+function clearSelectedSquares() {
+    mapSquares(square => square.selected = false);
 }
 
-function hasCellPiece(row, column) {
-    return _table[row][column].piece != null;
+/** Returns true if the square has a piece */
+function hasSquarePiece(row, column) {
+    return _board[row][column].piece != null;
 }
 
-function inTable(row, column) {
-    return row >= 0 && row < TABLE_HEIGHT && column >= 0 && column < TABLE_WIDTH;
+/** Return true if the row and column is inside the board */
+function inBoard(row, column)
+{
+    return row >= 0 && 
+        row < BOARD_HEIGHT && 
+        column >= 0 && 
+        column < BOARD_WIDTH;
+}
+
+/** Execute a function in all squares */
+function mapSquares(fnSquare) {
+    _board.map(row =>
+        row.map(square =>
+            fnSquare(square)));
+}
+
+/** Return all squares that fits the param filter */
+function filterSquares(fnSquare) {
+    return _board.flatMap(row => row.filter(square => fnSquare(square)));
 }

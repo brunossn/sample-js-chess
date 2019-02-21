@@ -40,15 +40,15 @@ function createBoard() {
 }
 
 function createPieces() {
-    range(8).forEach(n => _pieces.push({ piece: PEAO, row: 6, column: n }));
-    _pieces.push({ piece: TORRE, row: 7, column: 0 });
-    _pieces.push({ piece: CAVALO, row: 7, column: 1 });
-    _pieces.push({ piece: BISPO, row: 7, column: 2 });
-    _pieces.push({ piece: REI, row: 7, column: 3 });
-    _pieces.push({ piece: RAINHA, row: 7, column: 4 });
-    _pieces.push({ piece: BISPO, row: 7, column: 5 });
-    _pieces.push({ piece: CAVALO, row: 7, column: 6 });
-    _pieces.push({ piece: TORRE, row: 7, column: 7 });
+    range(8).forEach(n => _pieces.push({ piece: PEAO, row: 6, column: n, moves: 0 }));
+    _pieces.push({ piece: TORRE, row: 7, column: 0, moves: 0 });
+    _pieces.push({ piece: CAVALO, row: 7, column: 1, moves: 0 });
+    _pieces.push({ piece: BISPO, row: 7, column: 2, moves: 0 });
+    _pieces.push({ piece: REI, row: 7, column: 3, moves: 0 });
+    _pieces.push({ piece: RAINHA, row: 7, column: 4, moves: 0 });
+    _pieces.push({ piece: BISPO, row: 7, column: 5, moves: 0 });
+    _pieces.push({ piece: CAVALO, row: 7, column: 6, moves: 0 });
+    _pieces.push({ piece: TORRE, row: 7, column: 7, moves: 0 });
 }
 
 function draw() {
@@ -101,12 +101,13 @@ function draw() {
     }
 }
 
-function movePiece (fromRow, fromColumn, toRow, toColumn) {   
+function movePiece(fromRow, fromColumn, toRow, toColumn) {   
     _pieces
         .filter(p => p.row == fromRow && p.column == fromColumn)
         .forEach(p => {
             p.row = toRow;
             p.column = toColumn;
+            p.moves++;
         });
 
     draw();
@@ -128,15 +129,23 @@ function createListeners() {
             }
             else if(clickedsquare.canBeNextMove == true) { // se clicou para mover peça  
                 filterSquares(square => square.selected)
-                .map(square =>
-                    movePiece(square.row, square.column, this.dataset.row, this.dataset.column));
-                    
+                    .map(square =>
+                        movePiece(square.row, square.column, this.dataset.row, this.dataset.column));
+                
                 clearNextMovesMarkers();
                 clearSelectedSquares();
+                promoteQueens();
             }
 
             draw();
         }));
+}
+
+/** Promote all peoes in the last square to queen */
+function promoteQueens() {
+    _pieces
+        .filter(p => p.piece == PEAO && p.row == 0)
+        .forEach(p => p.piece = RAINHA); 
 }
 
 function selectSquare(row, column) {

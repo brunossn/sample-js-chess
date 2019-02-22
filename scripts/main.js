@@ -177,36 +177,35 @@ function printNextMoves(row, column) {
     _pieces
         .filter(p => p.row == row && p.column == column)
         .forEach(p =>
-            getMovesFromPiece(p.piece, p.row, p.column)
+            getMovesFromPiece(p.piece, p.row, p.column, p.color, p.moves)
                 .forEach(x => _board[x.row][x.column].canBeNextMove = true)
         );
 }
 
 /** Return a array with the possibles moves */
-function getMovesFromPiece(piece, row, column) {
+function getMovesFromPiece(piece, row, column, pieceColor, moves) {
     
+    console.log(pieceColor);
+
     const directions =
-        piece == PEAO ? getPeaoDirections(row) :
+        piece == PEAO ? getPeaoDirections(moves, pieceColor) :
         piece == TORRE ? getTorreDirections(row, column) :
         piece == CAVALO ? getCavaloDirections() :
         piece == BISPO ? getBispoDirections() :
         piece == REI ? getReiDirections() :
         piece == RAINHA ? getRainhaDirections() :
         [];
-
-    return calculaCasas(row, column, directions)
+    
+    return calculaCasas(row, column, directions, pieceColor)
         .filter(piece => inBoard(piece.row, piece.column))
         .filter(piece => !hasSquarePiece(piece.row, piece.column));
 
-    function removeCollapses(pieces) {
-        return pieces.filter(piece => !hasSquarePiece(piece.row, piece.column));
-    }
-
-    function calculaCasas(row, column, directions) {
+    function calculaCasas(row, column, directions, pieceColor) {
 
         if(!directions.propagation)
             return directions.moves.map(d =>
-                ({ row: Number(row) + d.y, column: Number(column) + d.x })
+                ({ row: Number(row) + d.y,
+                    column: Number(column) + d.x })
             );
 
         let moves = [];
@@ -224,15 +223,16 @@ function getMovesFromPiece(piece, row, column) {
         return moves;
     }
 
-    function getPeaoDirections(row) {
+    function getPeaoDirections(previousMoves, pieceColor) {
 
-        let moves = [ { x: 0, y: -1 } ];
+        let nextMoves = [ { x: 0, y: -1 } ];
 
-        if(row == 6) moves.push({ x: 0, y: -2 });
+        if(previousMoves === 0) nextMoves.push({ x: 0, y: -2 });
+        if(pieceColor === 'white') nextMoves.forEach(m => m.y = m.y * -1);
 
         return {
             propagation: false,
-            moves
+            moves: nextMoves
         };
     }
 

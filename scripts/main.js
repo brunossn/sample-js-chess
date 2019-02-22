@@ -22,10 +22,10 @@ function startGame() {
 }
 
 function createBoard() {
-    for(let i = 0; i < BOARD_WIDTH; i++) {
+    range(BOARD_WIDTH).forEach(i => {
         _board[i] = [];
 
-        for(let j = 0; j < BOARD_HEIGHT; j++) {
+        range(BOARD_HEIGHT).forEach(j => {
             _board[i][j] = {
                 piece: null,
                 pieceColor: 'white',
@@ -35,20 +35,37 @@ function createBoard() {
                 row: i,
                 column: j
             };
-        }
-    }
+        });
+    });
 }
 
 function createPieces() {
-    range(8).forEach(n => _pieces.push({ piece: PEAO, row: 6, column: n, moves: 0 }));
-    _pieces.push({ piece: TORRE, row: 7, column: 0, moves: 0 });
-    _pieces.push({ piece: CAVALO, row: 7, column: 1, moves: 0 });
-    _pieces.push({ piece: BISPO, row: 7, column: 2, moves: 0 });
-    _pieces.push({ piece: REI, row: 7, column: 3, moves: 0 });
-    _pieces.push({ piece: RAINHA, row: 7, column: 4, moves: 0 });
-    _pieces.push({ piece: BISPO, row: 7, column: 5, moves: 0 });
-    _pieces.push({ piece: CAVALO, row: 7, column: 6, moves: 0 });
-    _pieces.push({ piece: TORRE, row: 7, column: 7, moves: 0 });
+    blackPieces();
+    whitePieces();
+
+    function whitePieces() {
+        range(8).forEach(n => _pieces.push({ piece: PEAO, row: 1, column: n, moves: 0, color: 'white' }));
+        _pieces.push({ piece: TORRE, row: 0, column: 0, moves: 0, color: 'white' });
+        _pieces.push({ piece: CAVALO, row: 0, column: 1, moves: 0, color: 'white' });
+        _pieces.push({ piece: BISPO, row: 0, column: 2, moves: 0, color: 'white' });
+        _pieces.push({ piece: REI, row: 0, column: 3, moves: 0, color: 'white' });
+        _pieces.push({ piece: RAINHA, row: 0, column: 4, moves: 0, color: 'white' });
+        _pieces.push({ piece: BISPO, row: 0, column: 5, moves: 0, color: 'white' });
+        _pieces.push({ piece: CAVALO, row: 0, column: 6, moves: 0, color: 'white' });
+        _pieces.push({ piece: TORRE, row: 0, column: 7, moves: 0, color: 'white' });
+    }
+
+    function blackPieces() {
+        range(8).forEach(n => _pieces.push({ piece: PEAO, row: 6, column: n, moves: 0, color: 'black' }));
+        _pieces.push({ piece: TORRE, row: 7, column: 0, moves: 0, color: 'black' });
+        _pieces.push({ piece: CAVALO, row: 7, column: 1, moves: 0, color: 'black' });
+        _pieces.push({ piece: BISPO, row: 7, column: 2, moves: 0, color: 'black' });
+        _pieces.push({ piece: REI, row: 7, column: 3, moves: 0, color: 'black' });
+        _pieces.push({ piece: RAINHA, row: 7, column: 4, moves: 0, color: 'black' });
+        _pieces.push({ piece: BISPO, row: 7, column: 5, moves: 0, color: 'black' });
+        _pieces.push({ piece: CAVALO, row: 7, column: 6, moves: 0, color: 'black' });
+        _pieces.push({ piece: TORRE, row: 7, column: 7, moves: 0, color: 'black' });
+    }
 }
 
 function draw() {
@@ -72,7 +89,7 @@ function draw() {
                         data-row="${i}"
                         data-column="${j}"
                         class="${backgroundColorClass} ${pieceHoverClass} ${canBeNextMove} ${selected}">
-                        ${ (piece.length > 0 ? `<img height="50" src="${getImageFromPiece(piece[0].piece)}" />` : '') }
+                        ${ (piece.length > 0 ? `<img height="50" src="${getImageFromPiece(piece[0].piece, piece[0].color)}" />` : '') }
                     </td>`;
         }
         
@@ -85,7 +102,7 @@ function draw() {
 
     createListeners();
 
-    function getImageFromPiece(piece) {
+    function getImageFromPiece(piece, color) {
 
         if(piece == null || piece == undefined) return '';
 
@@ -97,7 +114,7 @@ function draw() {
             piece == RAINHA ? 'rainha' :
             piece == PEAO ? 'peao' : '';
 
-        return `img/${imagem}.svg`;
+        return `img/${imagem}${ color === 'white' ? '_white' : '' }.svg`;
     }
 }
 
@@ -135,6 +152,10 @@ function createListeners() {
                 clearNextMovesMarkers();
                 clearSelectedSquares();
                 promoteQueens();
+            }
+            else { // clicou em casa vazia
+                clearSelectedSquares();
+                clearNextMovesMarkers();
             }
 
             draw();

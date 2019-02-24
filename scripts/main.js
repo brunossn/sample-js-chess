@@ -43,28 +43,32 @@ function createPieces() {
     blackPieces();
     whitePieces();
 
+    function createPiece(piece, row, column, color) { // helper to create pieces faster
+        return ({ piece, row, column, moves: 0, color, killed: false });
+    }
+
     function whitePieces() {
-        range(8).forEach(n => _pieces.push({ piece: PEAO, row: 1, column: n, moves: 0, color: 'white' }));
-        _pieces.push({ piece: TORRE, row: 0, column: 0, moves: 0, color: 'white' });
-        _pieces.push({ piece: CAVALO, row: 0, column: 1, moves: 0, color: 'white' });
-        _pieces.push({ piece: BISPO, row: 0, column: 2, moves: 0, color: 'white' });
-        _pieces.push({ piece: REI, row: 0, column: 3, moves: 0, color: 'white' });
-        _pieces.push({ piece: RAINHA, row: 0, column: 4, moves: 0, color: 'white' });
-        _pieces.push({ piece: BISPO, row: 0, column: 5, moves: 0, color: 'white' });
-        _pieces.push({ piece: CAVALO, row: 0, column: 6, moves: 0, color: 'white' });
-        _pieces.push({ piece: TORRE, row: 0, column: 7, moves: 0, color: 'white' });
+        range(8).forEach(n => _pieces.push(createPiece(PEAO, 1, n, 'white')));
+        _pieces.push(createPiece(TORRE, 0, 0, 'white'));
+        _pieces.push(createPiece(CAVALO, 0, 1 ,'white'));
+        _pieces.push(createPiece(BISPO, 0, 2 ,'white'));
+        _pieces.push(createPiece(REI, 0, 3 ,'white'));
+        _pieces.push(createPiece(RAINHA, 0, 4 ,'white'));
+        _pieces.push(createPiece(BISPO, 0, 5 ,'white'));
+        _pieces.push(createPiece(CAVALO, 0, 6 ,'white'));
+        _pieces.push(createPiece(TORRE, 0, 7 ,'white'));
     }
 
     function blackPieces() {
-        range(8).forEach(n => _pieces.push({ piece: PEAO, row: 6, column: n, moves: 0, color: 'black' }));
-        _pieces.push({ piece: TORRE, row: 7, column: 0, moves: 0, color: 'black' });
-        _pieces.push({ piece: CAVALO, row: 7, column: 1, moves: 0, color: 'black' });
-        _pieces.push({ piece: BISPO, row: 7, column: 2, moves: 0, color: 'black' });
-        _pieces.push({ piece: REI, row: 7, column: 3, moves: 0, color: 'black' });
-        _pieces.push({ piece: RAINHA, row: 7, column: 4, moves: 0, color: 'black' });
-        _pieces.push({ piece: BISPO, row: 7, column: 5, moves: 0, color: 'black' });
-        _pieces.push({ piece: CAVALO, row: 7, column: 6, moves: 0, color: 'black' });
-        _pieces.push({ piece: TORRE, row: 7, column: 7, moves: 0, color: 'black' });
+        range(8).forEach(n => _pieces.push(createPiece(PEAO, 6, n ,'black' )));
+        _pieces.push(createPiece(TORRE, 7, 0 ,'black'));
+        _pieces.push(createPiece(CAVALO, 7, 1 ,'black'));
+        _pieces.push(createPiece(BISPO, 7, 2 ,'black'));
+        _pieces.push(createPiece(REI, 7, 3 ,'black'));
+        _pieces.push(createPiece(RAINHA, 7, 4 ,'black'));
+        _pieces.push(createPiece(BISPO, 7, 5 ,'black'));
+        _pieces.push(createPiece(CAVALO, 7, 6 ,'black'));
+        _pieces.push(createPiece(TORRE, 7, 7 ,'black'));
     }
 }
 
@@ -82,13 +86,14 @@ function draw() {
             const pieceHoverClass = hasSquarePiece(i, j) ? 'pieceHover' : '';
             const canBeNextMove = square.canBeNextMove == false ? '' : 'canBeNextMove';
             const selected = square.selected == false ? '' : 'selected';
+            const hasPieceClass = hasSquarePiece(i, j) ? 'hasPiece' : '';
 
-            const piece = _pieces.filter(p => p.row == i && p.column == j);
+            const piece = _pieces.filter(p => p.row == i && p.column == j && !p.killed);
 
             html += `<td
                         data-row="${i}"
                         data-column="${j}"
-                        class="${backgroundColorClass} ${pieceHoverClass} ${canBeNextMove} ${selected}">
+                        class="${backgroundColorClass} ${pieceHoverClass} ${canBeNextMove} ${selected} ${hasPieceClass}">
                         ${ (piece.length > 0 ? `<img height="50" src="${getImageFromPiece(piece[0].piece, piece[0].color)}" />` : '') }
                     </td>`;
         }
@@ -114,7 +119,7 @@ function draw() {
             piece == RAINHA ? 'rainha' :
             piece == PEAO ? 'peao' : '';
 
-        return `img/${imagem}${ color === 'white' ? '_white' : '' }.svg`;
+        return `img/${imagem}${ color == 'white' ? '_white' : '' }.svg`;
     }
 }
 
@@ -138,7 +143,7 @@ function createListeners() {
          
             const clickedsquare = _board[this.dataset.row][this.dataset.column];
 
-            if(hasSquarePiece(this.dataset.row, this.dataset.column)) { // se clicou em peça
+            if(hasSquarePiece(this.dataset.row, this.dataset.column, 'black')) { // se clicou em peça
                 clearSelectedSquares();
                 selectSquare(this.dataset.row, this.dataset.column);
                 clearNextMovesMarkers();
@@ -146,9 +151,11 @@ function createListeners() {
             }
             else if(clickedsquare.canBeNextMove == true) { // se clicou para mover peça  
                 filterSquares(square => square.selected)
-                    .map(square =>
-                        movePiece(square.row, square.column, this.dataset.row, this.dataset.column));
-                
+                .forEach(square => {
+                    killEnimies(square.row, square.column, 'black');
+                    movePiece(square.row, square.column, this.dataset.row, this.dataset.column);
+                });
+                    
                 clearNextMovesMarkers();
                 clearSelectedSquares();
                 promoteQueens();
@@ -160,6 +167,12 @@ function createListeners() {
 
             draw();
         }));
+}
+
+function killEnimies(row, column, pieceColor) {
+    _pieces
+        .filter(p => p.row == row && p.column == column && p.color != pieceColor)
+        .forEach(p => p.killed = true);
 }
 
 /** Promote all peoes in the last square to queen */
@@ -174,8 +187,9 @@ function selectSquare(row, column) {
 }
 
 function printNextMoves(row, column) {
+
     _pieces
-        .filter(p => p.row == row && p.column == column)
+        .filter(p => p.row == Number(row) && p.column == Number(column))
         .forEach(p =>
             getMovesFromPiece(p.piece, p.row, p.column, p.color, p.moves)
                 .forEach(x => _board[x.row][x.column].canBeNextMove = true)
@@ -184,39 +198,52 @@ function printNextMoves(row, column) {
 
 /** Return a array with the possibles moves */
 function getMovesFromPiece(piece, row, column, pieceColor, moves) {
-    
-    console.log(pieceColor);
 
-    const directions =
-        piece == PEAO ? getPeaoDirections(moves, pieceColor) :
+    const directions = getDirections(moves, pieceColor, row, column);
+    
+    return propagationMoves(row, column, directions, pieceColor);
+    
+    function getDirections(moves, pieceColor, row, column) {
+        return piece == PEAO ? getPeaoDirections(moves, pieceColor) :
         piece == TORRE ? getTorreDirections(row, column) :
         piece == CAVALO ? getCavaloDirections() :
         piece == BISPO ? getBispoDirections() :
         piece == REI ? getReiDirections() :
         piece == RAINHA ? getRainhaDirections() :
         [];
-    
-    return calculaCasas(row, column, directions, pieceColor)
-        .filter(piece => inBoard(piece.row, piece.column))
-        .filter(piece => !hasSquarePiece(piece.row, piece.column));
+    }
 
-    function calculaCasas(row, column, directions, pieceColor) {
+    function propagationMoves(row, column, directions, pieceColor) {
 
-        if(!directions.propagation)
-            return directions.moves.map(d =>
-                ({ row: Number(row) + d.y,
-                    column: Number(column) + d.x })
-            );
+        const moves = [];
 
-        let moves = [];
-        directions.moves.forEach(move => { // para cada direção
+        directions.moves.forEach(d => { // para cada direção
+
+            let collapses = false;
+            let nextRow = Number(row);
+            let nextColumn = Number(column);
+            let security = 0;
             
-            let square = { row: Number(row) + move.y, column: Number(column) + move.x };
+            while(!collapses && ++security < 20) {
 
-            while(inBoard(square.row, square.column) && !hasSquarePiece(square.row, square.column)) {
-                moves.push({ row: square.row, column: square.column });
-                square.row += move.y;
-                square.column += move.x;
+                nextRow += d.y;
+                nextColumn += d.x;
+
+                const nextSquare = { row: nextRow, column: nextColumn };
+
+                const isInBoard = inBoard(nextSquare.row, nextSquare.column);
+                const pieceReached = hasSquarePiece(nextSquare.row, nextSquare.column, pieceColor);
+                const enimyReached = hasSquarePiece(nextSquare.row, nextSquare.column) && !pieceReached;
+
+                if(isInBoard && !pieceReached) {
+                    moves.push(nextSquare);
+
+                    if(enimyReached) collapses = true; // allow move to enimy square
+                    if(!directions.propagation) collapses = true; // if not propagation, move only 1 square
+                }
+                else {
+                    collapses = true;
+                }
             }
         });
 
@@ -227,8 +254,8 @@ function getMovesFromPiece(piece, row, column, pieceColor, moves) {
 
         let nextMoves = [ { x: 0, y: -1 } ];
 
-        if(previousMoves === 0) nextMoves.push({ x: 0, y: -2 });
-        if(pieceColor === 'white') nextMoves.forEach(m => m.y = m.y * -1);
+        if(previousMoves == 0) nextMoves.push({ x: 0, y: -2 });
+        if(pieceColor == 'white') nextMoves.forEach(m => m.y = m.y * -1);
 
         return {
             propagation: false,
@@ -320,9 +347,10 @@ function clearSelectedSquares() {
 }
 
 /** Returns true if the square has a piece */
-function hasSquarePiece(row, column) {
+function hasSquarePiece(row, column, pieceColor = '') {
     return _pieces
-        .filter(p => p.row == row && p.column == column)
+        .filter(p => p.row == row && p.column == column &&
+            (pieceColor == '' || p.color == pieceColor))
         .length > 0
 }
 

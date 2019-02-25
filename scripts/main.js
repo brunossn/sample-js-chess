@@ -13,6 +13,11 @@ const RAINHA = 6;
 const BOARD_WIDTH = 8;
 const BOARD_HEIGHT = 8;
 
+// Move modes
+const ALWAYS = 0;
+const ONLY_ON_ENEMY = 1;
+const NOT_ON_ENEMY = 2;
+
 startGame();
 
 function startGame() {
@@ -73,54 +78,84 @@ function createPieces() {
 }
 
 function draw() {
-    let html = '<table>';
-
-    for(let i = 0; i < _board.length; i++) {
-        html += '<tr>';
-
-        for(let j = 0; j < _board[i].length; j++) {
-
-            const square = _board[i][j];
-
-            const backgroundColorClass = square.squareColor;
-            const pieceHoverClass = hasSquarePiece(i, j) ? 'pieceHover' : '';
-            const canBeNextMove = square.canBeNextMove == false ? '' : 'canBeNextMove';
-            const selected = square.selected == false ? '' : 'selected';
-            const hasPieceClass = hasSquarePiece(i, j) ? 'hasPiece' : '';
-
-            const piece = _pieces.filter(p => p.row == i && p.column == j && !p.killed);
-
-            html += `<td
-                        data-row="${i}"
-                        data-column="${j}"
-                        class="${backgroundColorClass} ${pieceHoverClass} ${canBeNextMove} ${selected} ${hasPieceClass}">
-                        ${ (piece.length > 0 ? `<img height="50" src="${getImageFromPiece(piece[0].piece, piece[0].color)}" />` : '') }
-                    </td>`;
-        }
-        
-        html += '</tr>'; 
-    }
-
-    html += '</table>';
-
-    document.querySelector('#chess').innerHTML = html;
-
+    drawBoard();
     createListeners();
 
-    function getImageFromPiece(piece, color) {
+    function drawBoard() {
+        let html = '<table>';
 
-        if(piece == null || piece == undefined) return '';
+        for(let i = 0; i < _board.length; i++) {
+            html += '<tr>';
 
-        const imagem = 
-            piece == TORRE ? 'torre' :
-            piece == CAVALO ? 'cavalo' :
-            piece == BISPO ? 'bispo' :
-            piece == REI ? 'rei' :
-            piece == RAINHA ? 'rainha' :
-            piece == PEAO ? 'peao' : '';
+            for(let j = 0; j < _board[i].length; j++) {
 
-        return `img/${imagem}${ color == 'white' ? '_white' : '' }.svg`;
+                const square = _board[i][j];
+
+                const backgroundColorClass = square.squareColor;
+                const pieceHoverClass = hasSquarePiece(i, j) ? 'pieceHover' : '';
+                const canBeNextMove = square.canBeNextMove == false ? '' : 'canBeNextMove';
+                const selected = square.selected == false ? '' : 'selected';
+                const hasPieceClass = hasSquarePiece(i, j) ? 'hasPiece' : '';
+
+                const piece = _pieces.filter(p => p.row == i && p.column == j && !p.killed);
+
+                html += `<td
+                            data-row="${i}"
+                            data-column="${j}"
+                            class="${backgroundColorClass} ${pieceHoverClass} ${canBeNextMove} ${selected} ${hasPieceClass}">
+                            ${ (piece.length > 0 ? `<img height="50" src="${getImageFromPiece(piece[0].piece, piece[0].color)}" />` : '') }
+                        </td>`;
+            }
+            
+            html += '</tr>'; 
+        }
+
+        html += '</table>';
+
+        document.querySelector('#chess').innerHTML = html;
+
+        function getImageFromPiece(piece, color) {
+
+            if(piece == null || piece == undefined) return '';
+    
+            const imagem = 
+                piece == TORRE ? 'torre' :
+                piece == CAVALO ? 'cavalo' :
+                piece == BISPO ? 'bispo' :
+                piece == REI ? 'rei' :
+                piece == RAINHA ? 'rainha' :
+                piece == PEAO ? 'peao' : '';
+    
+            return `img/${imagem}${ color == 'white' ? '_white' : '' }.svg`;
+        }
     }
+}
+
+function onClick(row, column) {
+
+    if(hasSquarePiece(row, column, 'black')) { // se clicou em peça
+        clearSelectedSquares();
+        selectSquare(row, column);
+        clearNextMovesMarkers();
+        printNextMoves(row, column);
+    }
+    else if(_board[row][column].canBeNextMove == true) { // se clicou para mover peça  
+        filterSquares(square => square.selected)
+        .forEach(square => {
+            killEnimies(row, column, 'black');
+            movePiece(square.row, square.column, row, column);
+        });
+            
+        clearNextMovesMarkers();
+        clearSelectedSquares();
+        promoteQueens();
+    }
+    else { // clicou em casa vazia
+        clearSelectedSquares();
+        clearNextMovesMarkers();
+    }
+
+    draw();
 }
 
 function movePiece(fromRow, fromColumn, toRow, toColumn) {   
@@ -140,45 +175,24 @@ function createListeners() {
     // Click
     document.querySelectorAll("td")
         .forEach(e => e.addEventListener('click', function(e) {
-         
-            const clickedsquare = _board[this.dataset.row][this.dataset.column];
-
-            if(hasSquarePiece(this.dataset.row, this.dataset.column, 'black')) { // se clicou em peça
-                clearSelectedSquares();
-                selectSquare(this.dataset.row, this.dataset.column);
-                clearNextMovesMarkers();
-                printNextMoves(this.dataset.row, this.dataset.column);
-            }
-            else if(clickedsquare.canBeNextMove == true) { // se clicou para mover peça  
-                filterSquares(square => square.selected)
-                .forEach(square => {
-                    killEnimies(square.row, square.column, 'black');
-                    movePiece(square.row, square.column, this.dataset.row, this.dataset.column);
-                });
-                    
-                clearNextMovesMarkers();
-                clearSelectedSquares();
-                promoteQueens();
-            }
-            else { // clicou em casa vazia
-                clearSelectedSquares();
-                clearNextMovesMarkers();
-            }
-
-            draw();
+            onClick(this.dataset.row, this.dataset.column);
         }));
 }
 
 function killEnimies(row, column, pieceColor) {
     _pieces
         .filter(p => p.row == row && p.column == column && p.color != pieceColor)
-        .forEach(p => p.killed = true);
+        .forEach(p => {
+            p.killed = true;
+            p.row = null;
+            p.column = null;
+        });
 }
 
 /** Promote all peoes in the last square to queen */
 function promoteQueens() {
     _pieces
-        .filter(p => p.piece == PEAO && p.row == 0)
+        .filter(p => p.piece === PEAO && p.row === 0)
         .forEach(p => p.piece = RAINHA); 
 }
 
@@ -187,7 +201,6 @@ function selectSquare(row, column) {
 }
 
 function printNextMoves(row, column) {
-
     _pieces
         .filter(p => p.row == Number(row) && p.column == Number(column))
         .forEach(p =>
@@ -200,7 +213,6 @@ function printNextMoves(row, column) {
 function getMovesFromPiece(piece, row, column, pieceColor, moves) {
 
     const directions = getDirections(moves, pieceColor, row, column);
-    
     return propagationMoves(row, column, directions, pieceColor);
     
     function getDirections(moves, pieceColor, row, column) {
@@ -222,9 +234,8 @@ function getMovesFromPiece(piece, row, column, pieceColor, moves) {
             let collapses = false;
             let nextRow = Number(row);
             let nextColumn = Number(column);
-            let security = 0;
             
-            while(!collapses && ++security < 20) {
+            while(!collapses) {
 
                 nextRow += d.y;
                 nextColumn += d.x;
@@ -233,12 +244,16 @@ function getMovesFromPiece(piece, row, column, pieceColor, moves) {
 
                 const isInBoard = inBoard(nextSquare.row, nextSquare.column);
                 const pieceReached = hasSquarePiece(nextSquare.row, nextSquare.column, pieceColor);
-                const enimyReached = hasSquarePiece(nextSquare.row, nextSquare.column) && !pieceReached;
+                const enemyReached = hasSquarePiece(nextSquare.row, nextSquare.column) && !pieceReached;
 
                 if(isInBoard && !pieceReached) {
-                    moves.push(nextSquare);
 
-                    if(enimyReached) collapses = true; // allow move to enimy square
+                    if((d.mode == ONLY_ON_ENEMY && enemyReached) ||
+                        (d.mode == NOT_ON_ENEMY && !enemyReached) ||
+                        (d.mode != ONLY_ON_ENEMY && d.mode != NOT_ON_ENEMY)) // some moves require an enemy in the next square
+                        moves.push(nextSquare);
+
+                    if(enemyReached) collapses = true; // allow move to enemy square
                     if(!directions.propagation) collapses = true; // if not propagation, move only 1 square
                 }
                 else {
@@ -252,7 +267,11 @@ function getMovesFromPiece(piece, row, column, pieceColor, moves) {
 
     function getPeaoDirections(previousMoves, pieceColor) {
 
-        let nextMoves = [ { x: 0, y: -1 } ];
+        let nextMoves = [
+            { x: 0, y: -1, mode: NOT_ON_ENEMY },
+            { x: 1, y: -1, mode: ONLY_ON_ENEMY },
+            { x: -1, y: -1, mode: ONLY_ON_ENEMY }
+        ];
 
         if(previousMoves == 0) nextMoves.push({ x: 0, y: -2 });
         if(pieceColor == 'white') nextMoves.forEach(m => m.y = m.y * -1);

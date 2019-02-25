@@ -53,7 +53,7 @@ function createPieces() {
     }
 
     function whitePieces() {
-        range(8).forEach(n => _pieces.push(createPiece(PEAO, 1, n, 'white')));
+        //range(8).forEach(n => _pieces.push(createPiece(PEAO, 1, n, 'white')));
         _pieces.push(createPiece(TORRE, 0, 0, 'white'));
         _pieces.push(createPiece(CAVALO, 0, 1 ,'white'));
         _pieces.push(createPiece(BISPO, 0, 2 ,'white'));
@@ -97,13 +97,16 @@ function draw() {
                 const selected = square.selected == false ? '' : 'selected';
                 const hasPieceClass = hasSquarePiece(i, j) ? 'hasPiece' : '';
 
-                const piece = _pieces.filter(p => p.row == i && p.column == j && !p.killed);
+                const piece = _pieces.filter(p => p.row == i && p.column == j && !p.killed)[0];
+
+                const inCheck = (piece != undefined && piece.piece == REI && isInCheck(piece.color))
+                    ? 'inCheck' : '';
 
                 html += `<td
                             data-row="${i}"
                             data-column="${j}"
-                            class="${backgroundColorClass} ${pieceHoverClass} ${canBeNextMove} ${selected} ${hasPieceClass}">
-                            ${ (piece.length > 0 ? `<img height="50" src="${getImageFromPiece(piece[0].piece, piece[0].color)}" />` : '') }
+                            class="${backgroundColorClass} ${pieceHoverClass} ${canBeNextMove} ${selected} ${hasPieceClass} ${inCheck}">
+                            ${ (piece != undefined ? `<img height="50" src="${getImageFromPiece(piece.piece, piece.color)}" />` : '') }
                         </td>`;
             }
             
@@ -129,6 +132,20 @@ function draw() {
             return `img/${imagem}${ color == 'white' ? '_white' : '' }.svg`;
         }
     }
+}
+
+function isInCheck(color) {
+    const king = _pieces.filter(p => p.piece == REI && p.color == color)[0];
+
+    return _pieces
+        .filter(p => p.color == toggleColor(color))
+        .flatMap(p => getMovesFromPiece(p.piece, p.row, p.column, p.color, p.moves))
+        .filter(x => x.row == king.row && x.column == king.column)
+        .length > 0;
+}
+
+function toggleColor(color) {
+    return color == 'white' ? 'black' : 'white';
 }
 
 function onClick(row, column) {
